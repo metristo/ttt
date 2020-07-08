@@ -25,37 +25,14 @@ def intro
     puts "\n \n"
 end
 
-module TicTacToe
-    def player_creation
-        intro
-        puts "Player 1 -- please input your name."
-        name = gets.chomp
-        p1 = Player.new(name, "X")
-        puts "Welcome, #{p1.name}, you are now the #{p1.marker}!"
-        puts "\n\n"
-        puts "Player 2 -- please input your name."
-        name = gets.chomp
-        p2 = Player.new(name, "O")
-        puts "Welcome, #{p2.name}, you are now the #{p2.marker}!"
-    end
-end
-class Cell 
-    attr_accessor :marker
-    def initialize(marker = "~")
-        @marker = marker
-    end
 
-    def to_s
-        self.marker
-    end
-end
 
 class Board 
 
-    def initialize
-        @data = Array.new(3){ Array.new(3) { Cell.new } }
-        @current = @p1
-        @opponent = @p2
+    def initialize (p1, p2)
+        @current = p1
+        @opponent = p2
+        @data = Array.new(3){ Array.new(3) { "~" } }
     end
 
     def to_s
@@ -66,19 +43,36 @@ class Board
     end
 
     def valid?(move)
-        if move.class == Integer && move.between?(1, 9)
-          true
+        if move.to_i.between?(1, 9)
+            true
         else
-          false
+            false
         end
+    end
+
+    def move_checker
+        solicit_move
+        move = gets.strip
+        until valid?(move) == true
+            puts "Remember, your move has to be a number between 1 and 9"
+            solicit_move
+            move = gets.strip.to_i
+        end
+        return move.to_i
     end
   
     def available?(x, y)
-        board[y][x].empty?
+        x = x.to_i
+        y = y.to_i
+        if @data[x][y] == "~"
+            return true
+        else
+            return false
+        end
     end
 
-    def solicit_move(player)
-        "#{@current.name}, please place your mark (1-9)"
+    def solicit_move
+        puts "#{@current.name}, please place your mark (1-9)"
     end
 
 
@@ -95,16 +89,14 @@ class Board
           9 => [2,2],
         }
         x, y = translation[move]
-        if available?(x, y)
+        if available?(x, y) == true
             make_move(x, y)
-            board.to_s
-        else
-            return "Sorry #{current.name}, that spot is taken"
-            solicit_move
+        elsif available?(x, y) == false
+            puts "Sorry #{@current.name}, that spot is taken."
+            move = move_checker
+            master_move(move)
         end
     end
-
-
 
     def make_move(x, y)
         @data[x][y] = @current.marker
@@ -115,24 +107,33 @@ class Board
         @current, @opponent = @opponent, @current
     end
 
-    def draw?
-        board.flatten.map do |cell| 
-          cell.marker.none_empty?
-        end
+    def no_draw?
+            win_possibilities.flatten.map do |cell|
+                return true if cell == "~"
+            end
     end
 
     def winner?
-        win_positions.each do |win_position|
-          return false if win_map(win_position).all_empty?
-            return true if win_map(win_position).all_same?
-                false
-            end
-          end
+        win_possibilities.each do |array|
+            return true if array.all_same? == true
         end
-    
+        false
+    end
 
-    def win_positions
-        @board + @board.transpose + diagonals
+    def win_possibilities
+        @data + @data.transpose + diagonals
+    end
+
+    def horizontals
+        @data
+    end
+
+    def verticals
+        @data.transpose
+    end
+
+    def cell_location(x, y)
+        @data[x][y]
     end
 
     def diagonals
@@ -140,21 +141,48 @@ class Board
     [cell_location(0,2), cell_location(1,1), cell_location(2,0)] ]
     end
 
-    def game_over
-        if winner? 
-          return :winner
-        elsif draw?
-          return :draw
-        else
-          false
+    def game_end
+        if game_over? == :winner
+            return true
+        elsif game_over? == :draw
+            return true
         end
     end
 
+    def game_over?
+        if winner? == true
+            return :winner
+        elsif no_draw? != true
+            return :draw
+        else
+            return false
+        end
+    end
 
-
-
-def play
+    def ending_text
+        if game_over? == :winner
+            winner_message
+        elsif game_over? == :draw
+            puts "\t~~~~~~~~~~~~~~~~~~~~~~~~"
+            puts "\t~~~~WOMP WOMP~~~~~~~~~~~" 
+            puts "\t~~~~~~~~IT\'S A TIE~~~~~~"
+            puts "\t~~~~~~~~~~~~~~~~~~~~~~~~"
+        end
+    end
+  
+    def winner_message
+        puts "\n"
+        puts "\t~~~~~~~~~~~~~~~~~~~~~~~~"
+        puts "\t~~~~~And~~~~~~~~~~~~~~~~"
+        puts "\t~~~~~~~~Your~~~~~~~~~~~~"
+        puts "\t~~~~~~~~~~Winner~~~~~~~~"
+        puts "\t~~~~~~~~~~~~Is~~~~~~~~~~"
+        puts "\t~~~~~~~~~~~~~~#{@opponent.name.upcase}~~~~~~~"
+        puts "\t~~~~~~~~~~~~~~~~~~~~~~~~"
+        puts "\n"
+    end
 end
+
 
 
 
@@ -165,20 +193,27 @@ end
 class Array
   
     def all_same?
-      self.all? do |space| 
-        space == self[0]
-      end
+        spots = 0
+        self.all? do |space|
+            return false if space == "~"
+            if space == self[0]
+                spots +=1
+            end
+        end
+        if spots >= 3
+            return true
+        end
     end
   
     def all_empty?
       self.all? do |space| 
-        space.to_s.empty?
+        space.to_s. == "~"
       end
     end
   
     def any_empty?
       self.any? do |space| 
-        space.to_s.empty?
+        space.to_s == "~"
       end
     end
   
@@ -191,26 +226,27 @@ end
 intro
 puts "Player 1 -- please input your name."
 name = gets.chomp
-@p1 = Player.new(name, "X")
-puts "Welcome, #{@p1.name}, you are now the #{@p1.marker}!"
+p1 = Player.new(name, "X")
+puts "Welcome, #{p1.name}, you are now the #{p1.marker}!"
 puts "\n\n"
 puts "Player 2 -- please input your name."
 name = gets.chomp
-@p2 = Player.new(name, "O")
-puts "Welcome, #{@p2.name}, you are now the #{@p2.marker}!"
-board = Board.new
-begin
+p2 = Player.new(name, "O")
+puts "Welcome, #{p2.name}, you are now the #{p2.marker}!"
+board = Board.new(p1, p2)
+until board.game_end
     puts "\n"
     puts board.to_s
     puts "\n"
-    board.solicit_move(@current)
-    move = gets.chomp
-    unless valid?(move)
-        "It seems you've made a mistake."
-    next move_translator(move)
-    board.make_move(move, current)
+    move = board.move_checker
+    # board.solicit_move
+    # move = gets.chomp
+    board.master_move(move)
+    # board.make_move(move, current)
     board.switch
-end while game_over? 
+end
+puts board.to_s
+board.ending_text
 # puts "GAME OVER" if(game_over?)
 
-end
+
